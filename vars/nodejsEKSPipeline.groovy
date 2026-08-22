@@ -1,0 +1,74 @@
+def call (Map configMap){
+    pipeline {
+        agent any
+            /* node {
+                label 'Agent-node'
+            } */
+        environment {
+            def appVersion = ""
+        }
+        stages {
+            stage('Read Package Info') {
+                steps {
+                    script {
+                        dir('piplines/${component}') {
+                            def packageJson = readJSON file: 'package.json'
+                            appVersion = packageJson.version
+                            echo "The application version is: ${appVersion}"
+                        }
+                    }
+                }
+            }
+        stage('Install Dependencies') {
+                steps {
+                    script {
+                        dir('piplines/${component}') {
+                        sh """
+                            npm install
+                        """
+                        }
+                    } 
+                }
+            }
+            // this command gives us coverage report and test cases report, sonarqube access this to check quality gate
+            stage('Unit tests') {
+                steps {
+                    script {
+                        dir('piplines/${component}') {
+                        sh """
+                            npm test
+                        """
+                        }
+                    } 
+                }
+            }
+            /*
+            stage('SonarQube Analysis') {
+                steps {
+                    dir('piplines/${component}') {
+                    script {
+                        withSonarQubeEnv('sonar-scanner') {
+                            def scannerHome = tool 'sonar-8'
+                            sh "${tool 'sonar-8'}/bin/sonar-scanner"
+                                }
+                    }
+                    
+                    }
+                }
+            }
+            stage('SonarQube Quality Gate') {
+                steps {
+                    timeout(time: 10, unit: 'MINUTES') {
+                        script {
+                            def qg = waitForQualityGate() // Pauses pipeline
+                            if (qg.status != 'OK') {
+                                error "Pipeline aborted: ${qg.status}"
+                            }
+                        }
+                    }
+                }
+            }
+            */
+        }
+    }
+}
