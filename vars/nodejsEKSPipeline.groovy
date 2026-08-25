@@ -43,7 +43,7 @@ def call (Map configMap){
                     } 
                 }
             }
-            /*
+            
             stage('SonarQube Analysis') {
                 steps {
                     dir('piplines/${component}') {
@@ -69,7 +69,7 @@ def call (Map configMap){
                     }
                 }
             }
-            */
+            
              stage('library-scan') {
                 steps {
                     script {
