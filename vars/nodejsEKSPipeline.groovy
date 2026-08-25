@@ -4,6 +4,7 @@ def call (Map configMap){
             /* node {
                 label 'Agent-node'
             } */
+            
         environment {
             def appVersion = ""
         }
@@ -11,7 +12,7 @@ def call (Map configMap){
             stage('Read Package Info') {
                 steps {
                     script {
-                        dir('piplines/${component}') {
+                        dir('piplines/${configMap.component}') {
                             def packageJson = readJSON file: 'package.json'
                             appVersion = packageJson.version
                             echo "The application version is: ${appVersion}"
@@ -22,7 +23,7 @@ def call (Map configMap){
         stage('Install Dependencies') {
                 steps {
                     script {
-                        dir('piplines/${component}') {
+                        dir('piplines/${configMap.component}') {
                         sh """
                             npm install
                         """
@@ -34,7 +35,7 @@ def call (Map configMap){
             stage('Unit tests') {
                 steps {
                     script {
-                        dir('piplines/${component}') {
+                        dir('piplines/${configMap.component}') {
                         sh """
                             npm test
                         """
@@ -42,10 +43,10 @@ def call (Map configMap){
                     } 
                 }
             }
-            /*
+            
             stage('SonarQube Analysis') {
                 steps {
-                    dir('piplines/${component}') {
+                    dir('piplines/${configMap.component}') {
                     script {
                         withSonarQubeEnv('sonar-scanner') {
                             def scannerHome = tool 'sonar-8'
@@ -68,7 +69,48 @@ def call (Map configMap){
                     }
                 }
             }
-            */
+            
+             stage('library-scan') {
+                steps {
+                    script {
+                        try{
+                            withCredentials([string(credentialsId: 'github-token', variable: 'GH_TOKEN')]) {
+                                sh '''
+                                    set -e
+
+                                    REPO="${org}/${configMap.component}"
+
+                                    curl -s -L \
+                                    -H "Accept: application/vnd.github+json" \
+                                    -H "Authorization: Bearer ${GH_TOKEN}" \
+                                    -H "X-GitHub-Api-Version: 2026-03-10" \
+                                    "https://api.github.com/repos/${REPO}/dependabot/alerts?state=open" \
+                                    -o alerts.json
+
+                                    echo "---- Open Dependabot Alerts ----"
+                                    jq -r '.[] | "\\(.number)\\t\\(.security_vulnerability.severity)\\t\\(.dependency.package.name)\\t\\(.security_advisory.ghsa_id)"' alerts.json
+
+                                    HIGH_CRITICAL_COUNT=$(jq '[.[] | select(.security_vulnerability.severity == "high" or .security_vulnerability.severity == "critical")] | length' alerts.json)
+
+                                    echo "High/Critical alert count: ${HIGH_CRITICAL_COUNT}"
+
+                                    if [ "$HIGH_CRITICAL_COUNT" -gt 0 ]; then
+                                        echo "❌ Found ${HIGH_CRITICAL_COUNT} High/Critical severity dependency alert(s). Failing build."
+                                        exit 1
+                                    else
+                                        echo "✅ No High/Critical dependency alerts found."
+                                    fi
+                                '''
+                            }
+                            utils.updateCommitStatus('SUCCESS', 'Library scan passed', 'library-scan')
+                        }
+                        catch (Exception e){
+                            utils.updateCommitStatus('FAILURE', 'Library scan failed', 'library-scan')
+                            throw e
+                        }
+                    }
+                }
+            }
         }
     }
 }
