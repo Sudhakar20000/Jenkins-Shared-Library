@@ -4,6 +4,7 @@ def call (Map configMap){
             /* node {
                 label 'Agent-node'
             } */
+            
         environment {
             def appVersion = ""
         }
