@@ -11,7 +11,7 @@ def call (Map configMap){
             stage('Read Package Info') {
                 steps {
                     script {
-                        dir('piplines/${configMap.component}') {
+                        dir("piplines/${configMap.component}") {
                             def packageJson = readJSON file: 'package.json'
                             appVersion = packageJson.version
                             echo "The application version is: ${appVersion}"
@@ -23,7 +23,7 @@ def call (Map configMap){
         stage('Install Dependencies') {
                 steps {
                     script {
-                        dir('piplines/${configMap.component}') {
+                        dir("piplines/${configMap.component}") {
                         sh """
                             npm install
                         """
@@ -35,7 +35,7 @@ def call (Map configMap){
             stage('Unit tests') {
                 steps {
                     script {
-                        dir('piplines/${configMap.component}') {
+                        dir("piplines/${configMap.component}") {
                         sh """
                             npm test
                         """
@@ -46,7 +46,7 @@ def call (Map configMap){
             
             stage('SonarQube Analysis') {
                 steps {
-                    dir('piplines/${configMap.component}') {
+                    dir("piplines/${configMap.component}") {
                     script {
                         withSonarQubeEnv('sonar-scanner') {
                             def scannerHome = tool 'sonar-8'
