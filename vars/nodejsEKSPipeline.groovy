@@ -45,6 +45,7 @@ def call (Map configMap){
                 }
             }
             
+            
             stage('SonarQube Analysis') {
                 steps {
                     dir("piplines/${configMap.component}") {
