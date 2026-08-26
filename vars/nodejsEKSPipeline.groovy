@@ -1,13 +1,12 @@
-def call (Map configMap){
+def call(Map configMap) {
     pipeline {
         agent any
-            /* node {
-                label 'Agent-node'
-            } */
-        environment {
-            def appVersion = ""
-        }
+        /* node {
+            label 'Agent-node'
+        } */
+
         stages {
+
             stage('Read Package Info') {
                 steps {
                     script {
@@ -20,45 +19,45 @@ def call (Map configMap){
                 }
             }
 
-        stage('Install Dependencies') {
+            stage('Install Dependencies') {
                 steps {
                     script {
                         dir("piplines/${configMap.component}") {
-                        sh """
-                            npm install
-                        """
+                            sh """
+                                npm install
+                            """
                         }
-                    } 
+                    }
                 }
             }
+
             // this command gives us coverage report and test cases report, sonarqube access this to check quality gate
             stage('Unit tests') {
                 steps {
                     script {
                         dir("piplines/${configMap.component}") {
-                        sh """
-                            export CATALOGUE_SERVER_PORT=8080
-                            npm test
-                        """
+                            sh """
+                                export CATALOGUE_SERVER_PORT=8080
+                                npm test
+                            """
                         }
-                    } 
+                    }
                 }
             }
-            
-            
+
             stage('SonarQube Analysis') {
                 steps {
                     dir("piplines/${configMap.component}") {
-                    script {
-                        withSonarQubeEnv('sonar-scanner') {
-                            def scannerHome = tool 'sonar-8'
-                            sh "${tool 'sonar-8'}/bin/sonar-scanner"
-                                }
-                    }
-                    
+                        script {
+                            withSonarQubeEnv('sonar-scanner') {
+                                def scannerHome = tool 'sonar-8'
+                                sh "${scannerHome}/bin/sonar-scanner"
+                            }
+                        }
                     }
                 }
             }
+
             stage('SonarQube Quality Gate') {
                 steps {
                     timeout(time: 10, unit: 'MINUTES') {
@@ -71,23 +70,23 @@ def call (Map configMap){
                     }
                 }
             }
-            
-             stage('library-scan') {
+
+            stage('library-scan') {
                 steps {
                     script {
-                        
-                            withCredentials([string(credentialsId: 'github-token', variable: 'GH_TOKEN')]) {
+                        def repoFullName = "Sudhakar20000/Jenkins-E-E"   // your actual monorepo
+
+                        withCredentials([string(credentialsId: 'github-token', variable: 'GH_TOKEN')]) {
+                            withEnv(["REPO=${repoFullName}"]) {
                                 sh '''
                                     set -e
 
-                                    REPO="${org}/${configMap.component}"
-
                                     curl -s -L \
-                                    -H "Accept: application/vnd.github+json" \
-                                    -H "Authorization: Bearer ${GH_TOKEN}" \
-                                    -H "X-GitHub-Api-Version: 2026-03-10" \
-                                    "https://api.github.com/repos/${REPO}/dependabot/alerts?state=open" \
-                                    -o alerts.json
+                                        -H "Accept: application/vnd.github+json" \
+                                        -H "Authorization: Bearer ${GH_TOKEN}" \
+                                        -H "X-GitHub-Api-Version: 2026-03-10" \
+                                        "https://api.github.com/repos/${REPO}/dependabot/alerts?state=open" \
+                                        -o alerts.json
 
                                     echo "---- Open Dependabot Alerts ----"
                                     jq -r '.[] | "\\(.number)\\t\\(.security_vulnerability.severity)\\t\\(.dependency.package.name)\\t\\(.security_advisory.ghsa_id)"' alerts.json
@@ -103,11 +102,12 @@ def call (Map configMap){
                                         echo "✅ No High/Critical dependency alerts found."
                                     fi
                                 '''
-                            
+                            }
                         }
                     }
                 }
             }
-        }
-    }
-}
+
+        } 
+    } 
+} 
