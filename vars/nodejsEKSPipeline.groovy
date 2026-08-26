@@ -75,7 +75,7 @@ def call (Map configMap){
              stage('library-scan') {
                 steps {
                     script {
-                        try{
+                        
                             withCredentials([string(credentialsId: 'github-token', variable: 'GH_TOKEN')]) {
                                 sh '''
                                     set -e
@@ -103,12 +103,7 @@ def call (Map configMap){
                                         echo "✅ No High/Critical dependency alerts found."
                                     fi
                                 '''
-                            }
-                            utils.updateCommitStatus('SUCCESS', 'Library scan passed', 'library-scan')
-                        }
-                        catch (Exception e){
-                            utils.updateCommitStatus('FAILURE', 'Library scan failed', 'library-scan')
-                            throw e
+                            
                         }
                     }
                 }
