@@ -37,6 +37,7 @@ def call (Map configMap){
                     script {
                         dir("piplines/${configMap.component}") {
                         sh """
+                            export CATALOGUE_SERVER_PORT=8080
                             npm test
                         """
                         }
